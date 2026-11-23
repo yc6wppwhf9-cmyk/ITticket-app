@@ -52,8 +52,18 @@ These rules are enforced by row-level security in the database, not just hidden 
 
 ### 2. Deploy (Vercel)
 
-Import this repo in Vercel and add the environment variables from
-[`.env.example`](.env.example). Then:
+Import this repo in Vercel and add these environment variables:
+
+| Name | Type in Vercel | Value |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Config | Supabase → Project Settings → API → Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Config | Supabase anon public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret | Supabase service_role key (server only) |
+| `NEXT_PUBLIC_APP_URL` | Config | Your app's address, no trailing slash |
+| `RESEND_API_KEY` | Secret | Optional, for email notifications |
+| `EMAIL_FROM` | Config | Optional, e.g. `IT Helpdesk <helpdesk@yourcompany.com>` |
+
+Then:
 
 1. Open the app, **Create an account** for yourself.
 2. Make yourself admin in the Supabase SQL editor:
@@ -71,7 +81,7 @@ Create a key at resend.com, verify your company domain, and set `RESEND_API_KEY`
 ## Local development
 
 ```bash
-cp .env.example .env.local   # fill in values
+# create .env.local with the variables listed above
 npm install
 npm run dev
 ```
