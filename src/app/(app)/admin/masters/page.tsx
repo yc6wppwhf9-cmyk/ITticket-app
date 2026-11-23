@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { personName } from "@/lib/format";
 import { AddForm, CategoryRow, DepartmentRow } from "./forms";
+import { PageHeader } from "@/components/page-header";
 
 export default async function MastersPage() {
   await requireRole("admin");
@@ -15,10 +16,11 @@ export default async function MastersPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="page-title">Departments &amp; categories</h1>
-        <p className="muted">Inactive entries are hidden from new tickets but kept on old ones, so history and reports stay intact.</p>
-      </div>
+      <PageHeader
+        eyebrow="Administration"
+        title="Departments & categories"
+        subtitle="Inactive entries are hidden from new tickets but kept on old ones, so history and reports stay intact."
+      />
 
       <section className="card overflow-hidden">
         <div className="border-b border-slate-200 p-4">

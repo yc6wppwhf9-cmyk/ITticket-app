@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isStaff } from "@/lib/types";
 import { personName } from "@/lib/format";
 import { NewTicketForm } from "./new-ticket-form";
+import { PageHeader } from "@/components/page-header";
 
 export default async function NewTicketPage() {
   const me = await requireUser();
@@ -19,12 +20,11 @@ export default async function NewTicketPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <div>
-        <h1 className="page-title">Raise a ticket</h1>
-        <p className="muted">
-          Tell IT what&apos;s wrong or what you need. You&apos;ll get a ticket number straight away and be notified at every update.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="New request"
+        title="Raise a ticket"
+        subtitle="Tell IT what's wrong or what you need. You'll get a ticket number straight away and be notified at every update."
+      />
       {!staff && !me.department_id && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Your profile has no department. <a className="font-semibold underline" href="/profile">Set it</a> so your tickets are reported under the right one.

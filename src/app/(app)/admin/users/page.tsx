@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { fmtDate } from "@/lib/format";
 import { ROLE_LABEL, type Profile } from "@/lib/types";
 import { NewUserForm, UserRow } from "./user-forms";
+import { PageHeader } from "@/components/page-header";
+import { Avatar } from "@/components/avatar";
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<{ q?: string; role?: string }> }) {
   const me = await requireRole("admin");
@@ -24,12 +26,11 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="page-title">Users</h1>
-        <p className="muted">
-          {counts.admin} IT admin · {counts.agent} IT agents · {counts.requester} requesters. People can also sign up themselves; they start as requesters.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Administration"
+        title="Users"
+        subtitle={`${counts.admin} IT admin · ${counts.agent} IT agents · ${counts.requester} requesters. People can also sign up themselves; they start as requesters.`}
+      />
 
       <section className="card p-4">
         <h2 className="mb-3 font-semibold">Add a user</h2>
@@ -47,7 +48,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         </form>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-slate-200 bg-slate-50/60">
+            <thead className="bg-slate-50/70">
               <tr>
                 <th className="th">Name</th>
                 <th className="th">Joined</th>
@@ -61,8 +62,13 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               {list.map((u) => (
                 <tr key={u.id} className={u.active ? "" : "bg-slate-50 text-slate-500"}>
                   <td className="td">
-                    <div className="font-medium">{u.full_name ?? "—"}{u.id === me.id && <span className="ml-1 text-xs text-slate-400">(you)</span>}</div>
-                    <div className="text-xs text-slate-500">{u.email}{u.phone ? ` · ${u.phone}` : ""}</div>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={u.full_name || u.email} size={32} />
+                      <div className="min-w-0">
+                        <div className="font-semibold">{u.full_name ?? "—"}{u.id === me.id && <span className="ml-1 text-xs font-normal text-slate-400">(you)</span>}</div>
+                        <div className="text-xs text-slate-500">{u.email}{u.phone ? ` · ${u.phone}` : ""}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="td whitespace-nowrap text-slate-500">{fmtDate(u.created_at)}</td>
                   <UserRow user={u} departments={departments} isMe={u.id === me.id} />

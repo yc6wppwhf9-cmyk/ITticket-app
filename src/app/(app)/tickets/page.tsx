@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isStaff, PRIORITIES, PRIORITY_LABEL, type Category, type Department, type Profile } from "@/lib/types";
 import { cleanSearch, STATUS_GROUPS, TICKET_SELECT, type StatusGroup, type TicketRow } from "@/lib/tickets";
 import { StatusBadge, PriorityBadge } from "@/components/badges";
+import { Person } from "@/components/avatar";
+import { PageHeader } from "@/components/page-header";
 import { ageDays, fmtDateTime, fmtDuration, personName, requestTime } from "@/lib/format";
 
 const PAGE_SIZE = 50;
@@ -88,72 +90,71 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
     return `/tickets?${p.toString()}`;
   };
 
+  const filtersOn = Boolean(sp.q || sp.category || sp.priority || sp.dept || sp.assignee);
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="page-title">Tickets</h1>
-          <p className="muted">
-            {staff ? "Every IT & Ginesys request, in one place." : "Everything you've raised with IT, and where it stands."}
-          </p>
-        </div>
-        <Link href="/tickets/new" className="btn-primary">+ Raise a ticket</Link>
-      </div>
+    <div>
+      <PageHeader
+        eyebrow={staff ? "IT workspace" : "My requests"}
+        title="Tickets"
+        subtitle={staff ? "Every IT & Ginesys request, in one place." : "Everything you've raised with IT, and where it stands."}
+        actions={
+          views.length > 1 && (
+            <div className="seg">
+              {views.map((v) => (
+                <Link key={v.key} href={href({ view: v.key, page: undefined })} className={`seg-item ${v.key === view ? "seg-item-active" : ""}`}>
+                  {v.label}
+                </Link>
+              ))}
+            </div>
+          )
+        }
+      />
 
-      {views.length > 1 && (
-        <div className="flex flex-wrap gap-1.5">
-          {views.map((v) => (
-            <Link
-              key={v.key}
-              href={href({ view: v.key, page: undefined })}
-              className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${v.key === view ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}
-            >
-              {v.label}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <div className="card overflow-hidden">
-        <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 px-3 pt-2">
-          {STATUS_GROUPS.map((g) => (
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {STATUS_GROUPS.map((g) => {
+          const on = g.key === group;
+          const tone =
+            g.key === "active" ? "from-indigo-500 to-violet-500" : g.key === "resolved" ? "from-emerald-500 to-teal-500" : g.key === "closed" ? "from-slate-400 to-slate-500" : "from-sky-500 to-cyan-500";
+          return (
             <Link
               key={g.key}
               href={href({ status: g.key, page: undefined })}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold ${g.key === group ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}
+              className={`card card-hover relative overflow-hidden p-4 ${on ? "ring-2 ring-indigo-500/60" : ""}`}
             >
-              {g.label}
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] ${g.key === group ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"}`}>
-                {countBy[g.key]}
-              </span>
+              <span className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tone} ${on ? "opacity-100" : "opacity-40"}`} />
+              <div className="text-xs font-semibold text-slate-500">{g.label}</div>
+              <div className="mt-1 text-3xl font-bold tabular-nums tracking-tight">{countBy[g.key]}</div>
             </Link>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        <form className="flex flex-wrap items-end gap-2 border-b border-slate-200 bg-slate-50/60 px-3 py-3" action="/tickets">
+      <div className="card overflow-hidden">
+        <form className="flex flex-wrap items-end gap-3 border-b border-slate-100 p-4" action="/tickets">
           <input type="hidden" name="view" value={view} />
           <input type="hidden" name="status" value={group} />
-          <div className="min-w-[12rem] flex-1">
+          <div className="min-w-[14rem] flex-1">
             <label className="label" htmlFor="q">Search</label>
-            <input className="input" id="q" name="q" placeholder="Ticket no. or title" defaultValue={sp.q ?? ""} />
+            <input className="input" id="q" name="q" placeholder="Ticket no. or subject" defaultValue={sp.q ?? ""} />
           </div>
-          <div>
+          <div className="w-full sm:w-auto sm:min-w-[11rem]">
             <label className="label" htmlFor="category">Category</label>
             <select className="input" id="category" name="category" defaultValue={sp.category ?? ""}>
-              <option value="">All</option>
+              <option value="">All categories</option>
               {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
-          <div>
+          <div className="w-full sm:w-auto sm:min-w-[8rem]">
             <label className="label" htmlFor="priority">Priority</label>
             <select className="input" id="priority" name="priority" defaultValue={sp.priority ?? ""}>
-              <option value="">All</option>
+              <option value="">Any</option>
               {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
             </select>
           </div>
           {staff && (
             <>
-              <div>
+              <div className="w-full sm:w-auto sm:min-w-[10rem]">
                 <label className="label" htmlFor="dept">Department</label>
                 <select className="input" id="dept" name="dept" defaultValue={sp.dept ?? ""}>
                   <option value="">All</option>
@@ -161,7 +162,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
                 </select>
               </div>
               {view === "all" && (
-                <div>
+                <div className="w-full sm:w-auto sm:min-w-[10rem]">
                   <label className="label" htmlFor="assignee">Assignee</label>
                   <select className="input" id="assignee" name="assignee" defaultValue={sp.assignee ?? ""}>
                     <option value="">Anyone</option>
@@ -171,32 +172,38 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
               )}
             </>
           )}
-          <button className="btn" type="submit">Apply</button>
-          {(sp.q || sp.category || sp.priority || sp.dept || sp.assignee) && (
-            <Link className="btn" href={`/tickets?view=${view}&status=${group}`}>Clear</Link>
-          )}
+          <div className="flex gap-2">
+            <button className="btn" type="submit">Apply</button>
+            {filtersOn && <Link className="btn-ghost" href={`/tickets?view=${view}&status=${group}`}>Clear</Link>}
+          </div>
         </form>
 
         {rows.length === 0 ? (
-          <div className="px-6 py-14 text-center">
-            <p className="font-semibold text-slate-700">No tickets here.</p>
-            <p className="muted mt-1">
-              {group === "active" ? "Nothing is waiting on IT in this view." : "Try another tab or clear the filters."}
+          <div className="flex flex-col items-center px-6 py-16 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-100 text-indigo-500 ring-1 ring-indigo-100">
+              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="font-semibold text-slate-800">{group === "active" && !filtersOn ? "All clear" : "No tickets here"}</p>
+            <p className="muted mt-1 max-w-sm">
+              {group === "active" && !filtersOn ? "Nothing is waiting in this view." : "Try another tab or clear the filters."}
             </p>
+            {!staff && <Link href="/tickets/new" className="btn-primary mt-5">Raise a ticket</Link>}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-slate-200 bg-slate-50/60">
+              <thead className="bg-slate-50/70">
                 <tr>
                   <th className="th">Ticket</th>
-                  <th className="th">Category</th>
-                  <th className="th">Priority</th>
                   <th className="th">Status</th>
+                  <th className="th">Priority</th>
+                  <th className="th">Category</th>
                   {staff && <th className="th">Raised by</th>}
                   <th className="th">Assigned to</th>
                   <th className="th">Raised on</th>
-                  <th className="th">{group === "active" ? "Age" : "Turnaround"}</th>
+                  <th className="th text-right">{group === "active" ? "Age" : "Turnaround"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -204,29 +211,34 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
                   const age = ageDays(t.created_at, now);
                   const done = t.closed_at ?? t.resolved_at;
                   return (
-                    <tr key={t.id} className="hover:bg-indigo-50/40">
-                      <td className="td max-w-[26rem]">
+                    <tr key={t.id} className="group transition hover:bg-indigo-50/40">
+                      <td className="td max-w-[28rem]">
                         <Link href={`/tickets/${t.id}`} className="block">
-                          <span className="font-mono text-xs font-semibold text-indigo-700">{t.ticket_no}</span>
-                          <span className="block truncate font-medium text-slate-900">{t.title}</span>
+                          <span className="font-mono text-[11px] font-semibold text-indigo-600">{t.ticket_no}</span>
+                          <span className="block truncate font-semibold text-slate-900 group-hover:text-indigo-700">{t.title}</span>
                         </Link>
                       </td>
-                      <td className="td whitespace-nowrap text-slate-600">{t.category?.name}</td>
-                      <td className="td"><PriorityBadge priority={t.priority} /></td>
                       <td className="td"><StatusBadge status={t.status} /></td>
+                      <td className="td"><PriorityBadge priority={t.priority} /></td>
+                      <td className="td whitespace-nowrap text-slate-600">{t.category?.name}</td>
                       {staff && (
                         <td className="td whitespace-nowrap">
-                          <div>{personName(t.requester)}</div>
-                          <div className="text-xs text-slate-500">{t.department?.name ?? "—"}</div>
+                          <Person name={personName(t.requester)} sub={t.department?.name ?? "No department"} />
                         </td>
                       )}
                       <td className="td whitespace-nowrap">
-                        {t.assignee ? personName(t.assignee) : <span className="text-amber-700">Unassigned</span>}
+                        {t.assignee ? (
+                          <Person name={personName(t.assignee)} />
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            Unassigned
+                          </span>
+                        )}
                       </td>
-                      <td className="td whitespace-nowrap text-slate-600">{fmtDateTime(t.created_at)}</td>
-                      <td className="td whitespace-nowrap">
+                      <td className="td whitespace-nowrap text-slate-500">{fmtDateTime(t.created_at)}</td>
+                      <td className="td whitespace-nowrap text-right tabular-nums">
                         {group === "active" || !done ? (
-                          <span className={age > 7 ? "font-semibold text-rose-600" : age > 2 ? "text-amber-700" : "text-slate-600"}>
+                          <span className={age > 7 ? "font-semibold text-rose-600" : age > 2 ? "font-medium text-amber-700" : "text-slate-600"}>
                             {fmtDuration(now - new Date(t.created_at).getTime())}
                           </span>
                         ) : (
@@ -242,7 +254,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         )}
 
         {total > PAGE_SIZE && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-sm">
+          <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm">
             <span className="text-slate-500">
               {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
             </span>

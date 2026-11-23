@@ -7,6 +7,7 @@ import { isStaff, type TicketAttachment, type TicketComment, type TicketEvent } 
 import { TICKET_SELECT, type TicketRow } from "@/lib/tickets";
 import { fmtBytes, fmtDateTime, fmtDuration, personName, requestTime } from "@/lib/format";
 import { PriorityBadge, StatusBadge } from "@/components/badges";
+import { Avatar, Person } from "@/components/avatar";
 import { CommentForm } from "./comment-form";
 import { StaffPanel } from "./staff-panel";
 import { RequesterActions } from "./requester-actions";
@@ -73,82 +74,92 @@ export default async function TicketPage({
   const isRequester = ticket.requester_id === me.id;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Link href="/tickets" className="text-slate-500 hover:text-indigo-700">← Tickets</Link>
-      </div>
+    <div className="space-y-5">
+      <Link href="/tickets" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-700">
+        <span aria-hidden>←</span> All tickets
+      </Link>
 
       {sp.created && (
         <p className="alert-ok">
-          Ticket <b>{ticket.ticket_no}</b> has been raised. IT has been notified, and you&apos;ll be notified at every update.
+          <span aria-hidden>✓</span>
+          <span>Ticket <b>{ticket.ticket_no}</b> has been raised. IT has been notified, and you&apos;ll be notified at every update.</span>
         </p>
       )}
       {sp.failed && <p className="alert-error">These files did not upload: {sp.failed}. Add them again below.</p>}
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-sm font-bold text-indigo-700">{ticket.ticket_no}</span>
-            <StatusBadge status={ticket.status} />
-            <PriorityBadge priority={ticket.priority} />
-          </div>
-          <h1 className="mt-1 text-xl font-bold tracking-tight break-words">{ticket.title}</h1>
-          <p className="muted">
-            {ticket.category?.name} · raised by {personName(ticket.requester)}
-            {ticket.department ? ` (${ticket.department.name})` : ""} on {fmtDateTime(ticket.created_at)}
-          </p>
+      <div className="card relative overflow-hidden p-5 sm:p-6">
+        <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400" />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="rounded-lg bg-indigo-50 px-2 py-1 font-mono text-xs font-bold text-indigo-700 ring-1 ring-inset ring-indigo-600/10">{ticket.ticket_no}</span>
+          <StatusBadge status={ticket.status} />
+          <PriorityBadge priority={ticket.priority} />
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{ticket.category?.name}</span>
+        </div>
+        <h1 className="mt-3 break-words text-2xl font-bold tracking-tight text-slate-900">{ticket.title}</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
+          <Person name={personName(ticket.requester)} sub={ticket.department?.name ?? null} size={30} />
+          <span>Raised {fmtDateTime(ticket.created_at)}</span>
+          <span className="font-medium text-slate-700">
+            {end ? "Turnaround" : "Open for"} {fmtDuration((end ? new Date(end).getTime() : now) - new Date(ticket.created_at).getTime())}
+          </span>
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0 space-y-4">
-          <section className="card p-5">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Details</h2>
-            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{ticket.description}</p>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_23rem]">
+        <div className="min-w-0 space-y-5">
+          <section className="card p-5 sm:p-6">
+            <h2 className="section-title mb-3">Details</h2>
+            <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-slate-800">{ticket.description}</p>
             {ticketFiles.length > 0 && <FileList files={ticketFiles} />}
             {(staff || isRequester) && <AddFiles ticketId={id} />}
           </section>
 
-          <section className="card p-5">
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">Activity &amp; history</h2>
-            <ol className="relative space-y-4 border-l border-slate-200 pl-5">
+          <section className="card p-5 sm:p-6">
+            <h2 className="section-title mb-5">Activity &amp; history</h2>
+            <ol className="relative space-y-5 before:absolute before:bottom-2 before:left-[15px] before:top-2 before:w-px before:bg-gradient-to-b before:from-slate-200 before:via-slate-200 before:to-transparent">
               {timeline.map((item) =>
                 item.kind === "comment" ? (
-                  <li key={`c${item.c.id}`} className="relative">
-                    <span className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full ring-4 ring-white ${item.c.is_internal ? "bg-amber-400" : item.c.author?.role === "requester" ? "bg-sky-500" : "bg-indigo-600"}`} />
-                    <div className={`rounded-xl border p-3 ${item.c.is_internal ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-white"}`}>
-                      <div className="mb-1 flex flex-wrap items-center gap-x-2 text-xs">
-                        <span className="font-semibold text-slate-800">{personName(item.c.author)}</span>
-                        {item.c.author && item.c.author.role !== "requester" && <span className="rounded bg-indigo-50 px-1.5 text-[10px] font-bold text-indigo-700">IT</span>}
-                        {item.c.is_internal && <span className="rounded bg-amber-200 px-1.5 text-[10px] font-bold text-amber-900">INTERNAL NOTE</span>}
+                  <li key={`c${item.c.id}`} className="relative flex gap-3">
+                    <span className="relative z-10"><Avatar name={personName(item.c.author)} size={32} /></span>
+                    <div className={`min-w-0 flex-1 rounded-2xl border p-3.5 ${item.c.is_internal ? "border-amber-200 bg-amber-50/70" : "border-slate-200/80 bg-white"}`}>
+                      <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                        <span className="font-semibold text-slate-900">{personName(item.c.author)}</span>
+                        {item.c.author && item.c.author.role !== "requester" && (
+                          <span className="rounded-md bg-gradient-to-r from-indigo-500 to-violet-500 px-1.5 py-px text-[10px] font-bold text-white">IT</span>
+                        )}
+                        {item.c.is_internal && <span className="rounded-md bg-amber-200/80 px-1.5 py-px text-[10px] font-bold text-amber-900">INTERNAL NOTE</span>}
                         <span className="text-slate-400">{fmtDateTime(item.c.created_at)}</span>
                       </div>
-                      <p className="whitespace-pre-wrap break-words text-sm">{item.c.body}</p>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800">{item.c.body}</p>
                       {filesByComment.get(item.c.id) && <FileList files={filesByComment.get(item.c.id)!} />}
                     </div>
                   </li>
                 ) : (
-                  <li key={`e${item.e.id}`} className="relative text-sm">
-                    <span className="absolute -left-[25px] top-1.5 h-2 w-2 rounded-full bg-slate-300 ring-4 ring-white" />
-                    <span className="font-medium text-slate-700">{item.e.actor ? personName(item.e.actor) : "System"}</span>{" "}
-                    <span className="text-slate-600">{describeEvent(item.e)}</span>{" "}
-                    <span className="text-xs text-slate-400">· {fmtDateTime(item.e.created_at)}</span>
-                    {item.e.note && (
-                      <p className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200">
-                        “{item.e.note}”
-                      </p>
-                    )}
+                  <li key={`e${item.e.id}`} className="relative flex gap-3 text-sm">
+                    <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-slate-200">
+                      <span className={`h-2 w-2 rounded-full ${EVENT_DOT[item.e.event] ?? "bg-slate-400"}`} />
+                    </span>
+                    <div className="min-w-0 flex-1 pt-1.5">
+                      <span className="font-semibold text-slate-800">{item.e.actor ? personName(item.e.actor) : "System"}</span>{" "}
+                      <span className="text-slate-600">{describeEvent(item.e)}</span>{" "}
+                      <span className="text-xs text-slate-400">· {fmtDateTime(item.e.created_at)}</span>
+                      {item.e.note && (
+                        <p className="mt-2 whitespace-pre-wrap rounded-xl border-l-[3px] border-indigo-300 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                          {item.e.note}
+                        </p>
+                      )}
+                    </div>
                   </li>
                 )
               )}
             </ol>
-            <div className="mt-5 border-t border-slate-100 pt-4">
+            <div className="mt-6 border-t border-slate-100 pt-5">
               <CommentForm ticketId={id} staff={staff} />
             </div>
           </section>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
           {staff ? (
             <StaffPanel
               ticket={{ id, status: ticket.status, priority: ticket.priority, assignee_id: ticket.assignee_id, category_id: ticket.category_id }}
@@ -160,25 +171,25 @@ export default async function TicketPage({
             isRequester && <RequesterActions ticketId={id} status={ticket.status} />
           )}
 
-          <section className="card p-4 text-sm">
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Ticket info</h2>
-            <dl className="space-y-2">
-              <Row k="Assigned to" v={ticket.assignee ? personName(ticket.assignee) : <span className="text-amber-700">Not yet assigned</span>} />
-              <Row k="Raised by" v={personName(ticket.requester)} />
-              <Row k="Department" v={ticket.department?.name ?? "—"} />
-              <Row k="Category" v={ticket.category?.name ?? "—"} />
-              <div className="my-2 border-t border-slate-100" />
-              <Row k="Raised" v={fmtDateTime(ticket.created_at)} />
-              <Row k="Assigned" v={fmtDateTime(ticket.assigned_at)} />
-              <Row k="First action" v={fmtDateTime(ticket.first_response_at)} />
-              <Row k="Resolved" v={fmtDateTime(ticket.resolved_at)} />
-              <Row k="Closed" v={fmtDateTime(ticket.closed_at)} />
-              <div className="my-2 border-t border-slate-100" />
-              <Row k={end ? "Turnaround" : "Open for"} v={<b>{fmtDuration((end ? new Date(end).getTime() : now) - new Date(ticket.created_at).getTime())}</b>} />
-              {ticket.first_response_at && (
-                <Row k="Response time" v={fmtDuration(new Date(ticket.first_response_at).getTime() - new Date(ticket.created_at).getTime())} />
-              )}
-            </dl>
+          <section className="card p-5 text-sm">
+            <h2 className="section-title mb-4">Ticket info</h2>
+            <div className="mb-4 rounded-xl bg-slate-50 p-3">
+              <div className="mb-1.5 text-xs font-semibold text-slate-500">Assigned to</div>
+              {ticket.assignee ? <Person name={personName(ticket.assignee)} size={30} /> : <span className="font-semibold text-amber-700">Not yet assigned</span>}
+            </div>
+            <ol className="space-y-3">
+              <Step label="Raised" at={ticket.created_at} />
+              <Step label="Assigned" at={ticket.assigned_at} />
+              <Step label="First action" at={ticket.first_response_at} />
+              <Step label="Resolved" at={ticket.resolved_at} />
+              <Step label="Closed" at={ticket.closed_at} />
+            </ol>
+            {ticket.first_response_at && (
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
+                <Stat k="Response time" v={fmtDuration(new Date(ticket.first_response_at).getTime() - new Date(ticket.created_at).getTime())} />
+                <Stat k={end ? "Turnaround" : "Open for"} v={fmtDuration((end ? new Date(end).getTime() : now) - new Date(ticket.created_at).getTime())} />
+              </div>
+            )}
           </section>
         </aside>
       </div>
@@ -186,11 +197,36 @@ export default async function TicketPage({
   );
 }
 
-function Row({ k, v }: { k: string; v: React.ReactNode }) {
+const EVENT_DOT: Record<string, string> = {
+  created: "bg-sky-500",
+  status: "bg-violet-500",
+  assigned: "bg-indigo-500",
+  priority: "bg-rose-500",
+  category: "bg-amber-500",
+  attachment: "bg-teal-500",
+};
+
+function Step({ label, at }: { label: string; at: string | null }) {
   return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-slate-500">{k}</dt>
-      <dd className="text-right font-medium text-slate-800">{v}</dd>
+    <li className="flex items-center gap-3">
+      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${at ? "bg-emerald-500 text-white" : "bg-slate-100 ring-1 ring-slate-200"}`}>
+        {at && (
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        )}
+      </span>
+      <span className={`flex-1 ${at ? "font-medium text-slate-800" : "text-slate-400"}`}>{label}</span>
+      <span className={`text-right text-xs ${at ? "text-slate-600" : "text-slate-300"}`}>{fmtDateTime(at)}</span>
+    </li>
+  );
+}
+
+function Stat({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 px-3 py-2">
+      <div className="text-[11px] font-semibold text-slate-500">{k}</div>
+      <div className="font-bold tabular-nums text-slate-900">{v}</div>
     </div>
   );
 }
@@ -218,7 +254,7 @@ function FileList({ files }: { files: Att[] }) {
       {files.map((f) =>
         f.mime_type?.startsWith("image/") && f.url ? (
           <li key={f.id}>
-            <a href={f.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg ring-1 ring-slate-200 hover:ring-indigo-400" title={f.file_name}>
+            <a href={f.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl shadow-xs ring-1 ring-slate-200 transition hover:-translate-y-px hover:ring-indigo-400" title={f.file_name}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={f.url} alt={f.file_name} className="h-24 w-36 object-cover" />
             </a>
@@ -227,7 +263,7 @@ function FileList({ files }: { files: Att[] }) {
           <li key={f.id}>
             <a
               href={f.url ? `${f.url}&download=${encodeURIComponent(f.file_name)}` : undefined}
-              className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs ring-1 ring-slate-200 hover:bg-indigo-50 hover:ring-indigo-300"
+              className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs shadow-xs ring-1 ring-slate-200 transition hover:-translate-y-px hover:ring-indigo-300"
             >
               <span>📎</span>
               <span className="max-w-[14rem] truncate font-medium">{f.file_name}</span>

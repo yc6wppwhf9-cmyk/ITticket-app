@@ -67,7 +67,7 @@ export function NewTicketForm({
           setFiles((cur) => validateFiles(cur, pasted).files);
         }
       }}
-      className="card space-y-5 p-5 sm:p-6"
+      className="card space-y-6 p-5 sm:p-7"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -87,7 +87,7 @@ export function NewTicketForm({
                 key={p}
                 type="button"
                 onClick={() => setPriority(p)}
-                className={`rounded-lg border px-2 py-2 text-sm font-semibold transition ${
+                className={`rounded-xl border px-2 py-2.5 text-sm font-semibold transition ${
                   priority === p
                     ? p === "high" ? "border-rose-500 bg-rose-50 text-rose-700" : p === "medium" ? "border-orange-500 bg-orange-50 text-orange-700" : "border-slate-500 bg-slate-100 text-slate-700"
                     : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
@@ -123,7 +123,7 @@ export function NewTicketForm({
       </div>
 
       {staff && (
-        <details className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+        <details className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-4">
           <summary className="cursor-pointer text-sm font-semibold text-slate-700">IT options: raise on behalf of someone / assign now</summary>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <div>

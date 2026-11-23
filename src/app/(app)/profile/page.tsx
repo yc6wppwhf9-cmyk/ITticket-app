@@ -4,6 +4,8 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABEL } from "@/lib/types";
 import { SubmitButton } from "@/components/submit-button";
+import { PageHeader } from "@/components/page-header";
+import { Avatar } from "@/components/avatar";
 
 async function saveProfile(fd: FormData) {
   "use server";
@@ -29,9 +31,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <div>
-        <h1 className="page-title">My profile</h1>
-        <p className="muted">{me.email} · {ROLE_LABEL[me.role]}</p>
+      <PageHeader title="My profile" />
+      <div className="card flex items-center gap-4 p-5">
+        <Avatar name={me.full_name || me.email} size={56} />
+        <div className="min-w-0">
+          <div className="truncate text-lg font-bold">{me.full_name || me.email.split("@")[0]}</div>
+          <div className="truncate text-sm text-slate-500">{me.email}</div>
+          <span className="mt-1 inline-block rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">{ROLE_LABEL[me.role]}</span>
+        </div>
       </div>
       {saved && <p className="alert-ok">Profile saved.</p>}
       <form action={saveProfile} className="card space-y-4 p-5">

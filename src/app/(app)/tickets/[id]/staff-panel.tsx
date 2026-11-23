@@ -58,7 +58,7 @@ export function StaffPanel({
 
   return (
     <section className="card p-4">
-      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Update ticket</h2>
+      <h2 className="mb-3 section-title">Update ticket</h2>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
         {!ticket.assignee_id && (
