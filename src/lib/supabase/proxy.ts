@@ -27,10 +27,13 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Do not run code between createServerClient and getUser().
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Do not run code between createServerClient and the auth check.
+  // getClaims() verifies the JWT signature locally against the project's
+  // published keys (cached), instead of a round trip to Supabase Auth on
+  // every click. On projects still using a shared secret it falls back to
+  // the network check, so it is never slower than getUser().
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
 
   const path = request.nextUrl.pathname;
   if (!user && !PUBLIC_PREFIXES.some((p) => path.startsWith(p))) {

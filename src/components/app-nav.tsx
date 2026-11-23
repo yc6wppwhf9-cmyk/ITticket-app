@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/auth-card";
 import { Avatar } from "@/components/avatar";
@@ -48,6 +48,13 @@ const GROUPS: Group[] = [
   },
   { title: "Account", items: [{ href: "/profile", label: "My Profile", icon: I.user }] },
 ];
+
+/** A tiny spinner inside whichever menu link is still loading. */
+function PendingSpinner() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-300/30 border-t-indigo-300" aria-hidden />;
+}
 
 export function Icon({ d, className = "h-[18px] w-[18px]" }: { d: string; className?: string }) {
   return (
@@ -107,6 +114,7 @@ export function AppNav({
                       {on && <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-gradient-to-b from-indigo-400 to-violet-400" />}
                       <Icon d={i.icon} className={`h-[18px] w-[18px] shrink-0 ${on ? "text-indigo-300" : "text-slate-500 group-hover:text-slate-300"}`} />
                       <span className="flex-1">{i.label}</span>
+                      <PendingSpinner />
                       {i.badge === "unread" && unread > 0 && (
                         <span className="rounded-full bg-rose-500 px-1.5 py-px text-[10px] font-bold text-white shadow-[0_0_0_3px_rgba(244,63,94,0.18)]">
                           {unread > 99 ? "99+" : unread}

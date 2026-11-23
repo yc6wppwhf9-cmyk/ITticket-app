@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { after } from "next/server";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -30,15 +31,11 @@ export default async function TicketPage({
   const staff = isStaff(me.role);
   const supabase = await createClient();
 
-  const { data: t } = await supabase
-    .from("tickets")
-    .select(`${TICKET_SELECT}, description, updated_at, assigned_at`)
-    .eq("id", id)
-    .maybeSingle();
-  if (!t) notFound();
-  const ticket = t as unknown as TicketRow & { description: string; assigned_at: string | null };
-
-  const [comments, attachments, events, cats, agents] = await Promise.all([
+  // One parallel batch. The related rows are filtered by row-level security
+  // just like the ticket, so fetching them before knowing the ticket exists
+  // leaks nothing; it only saves a round trip.
+  const [{ data: t }, comments, attachments, events, cats, agents] = await Promise.all([
+    supabase.from("tickets").select(`${TICKET_SELECT}, description, updated_at, assigned_at`).eq("id", id).maybeSingle(),
     supabase.from("ticket_comments").select("*, author:profiles(full_name, email, role)").eq("ticket_id", id).order("created_at"),
     supabase.from("ticket_attachments").select("*").eq("ticket_id", id).order("created_at"),
     supabase.from("ticket_events").select("*, actor:profiles(full_name, email)").eq("ticket_id", id).order("id"),
@@ -47,10 +44,15 @@ export default async function TicketPage({
       ? supabase.from("profiles").select("id, full_name, email").in("role", ["agent", "admin"]).eq("active", true).order("full_name")
       : Promise.resolve({ data: [] }),
   ]);
+  if (!t) notFound();
+  const ticket = t as unknown as TicketRow & { description: string; assigned_at: string | null };
 
-  // Opening the ticket counts as reading its notifications.
-  await supabase.from("notifications").update({ read_at: new Date().toISOString() })
-    .eq("user_id", me.id).eq("ticket_id", id).is("read_at", null);
+  // Opening the ticket counts as reading its notifications. Done after the
+  // page is sent, so it costs the reader nothing.
+  after(async () => {
+    await supabase.from("notifications").update({ read_at: new Date().toISOString() })
+      .eq("user_id", me.id).eq("ticket_id", id).is("read_at", null);
+  });
 
   const atts = (attachments.data ?? []) as TicketAttachment[];
   const signed = atts.length

@@ -1,15 +1,20 @@
-import { requireUser } from "@/lib/auth";
+import { getUserId, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppNav } from "@/components/app-nav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const me = await requireUser();
+  // The profile and the unread count are independent, so fetch them together
+  // rather than one after the other.
+  const uid = await getUserId();
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", me.id)
-    .is("read_at", null);
+  const [me, { count }] = await Promise.all([
+    requireUser(),
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", uid ?? "")
+      .is("read_at", null),
+  ]);
 
   return (
     <AppNav
